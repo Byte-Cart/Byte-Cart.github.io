@@ -1,0 +1,29 @@
+{
+  "name": "byte-cart-security-site",
+  "version": "1.0.0",
+  "description": "Security Operations & Infrastructure landing page",
+  "private": true,
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:ui": "playwright test --ui",
+    "test:html": "npm run test:validate && npm run test:accessibility",
+    "test:validate": "html-validate index.html",
+    "test:accessibility": "playwright test tests/accessibility.spec.js",
+    "test:links": "playwright test tests/links.spec.js",
+    "test:responsive": "playwright test tests/responsive.spec.js",
+    "test:visual": "playwright test tests/visual.spec.js",
+    "test:ci": "playwright test --reporter=github",
+    "playwright:install": "playwright install --with-deps chromium",
+    "lint:html": "html-validate index.html"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.9.0",
+    "@playwright/test": "^1.45.0",
+    "html-validate": "^8.20.0",
+    "playwright": "^1.45.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

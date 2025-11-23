@@ -1,0 +1,26 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Test artifacts
+test-results/
+playwright-report/
+playwright/.cache/
+
+# Visual regression baselines (commit these after review)
+# tests/**/*-snapshots/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor directories
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
