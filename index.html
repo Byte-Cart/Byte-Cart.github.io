@@ -5,8 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>byte-cart — terminal</title>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&display=swap');
-
     :root {
       --bg:       #080c0a;
       --surface:  #0e1410;
@@ -20,7 +18,6 @@
       --err:      #c86060;
       --border:   #1e2e22;
       --scanline: rgba(0,0,0,0.18);
-      --glow:     rgba(90,158,112,0.08);
     }
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -29,7 +26,7 @@
       height: 100%;
       background: var(--bg);
       color: var(--text);
-      font-family: 'JetBrains Mono', 'Courier New', monospace;
+      font-family: ui-monospace, 'Cascadia Code', 'Source Code Pro', 'Menlo', 'Consolas', 'DejaVu Sans Mono', monospace;
       font-size: 14px;
       line-height: 1.7;
       overflow: hidden;
@@ -148,6 +145,7 @@
     .c-err    { color: var(--err); }
     .c-dim    { color: var(--dim); }
     .c-white  { color: #e0e0e0; }
+    .c-text   { color: var(--text); }
     .c-prompt { color: var(--prompt); }
     .bold     { font-weight: 700; }
     .italic   { font-style: italic; }
@@ -162,19 +160,35 @@
       white-space: pre;
     }
 
-    /* Section divider */
-    .divider {
+    .banner-sm {
+      color: var(--accent);
+      font-size: 11px;
+      line-height: 1.3;
+      letter-spacing: 0.01em;
       display: block;
-      color: var(--muted);
-      margin: 2px 0;
+      white-space: pre;
     }
 
-    /* Skill bar */
-    .skill-row { display: flex; align-items: center; gap: 10px; margin: 1px 0; }
-    .skill-name { color: var(--text); min-width: 200px; }
-    .skill-bar-bg { background: var(--dim); height: 6px; border-radius: 3px; flex: 1; max-width: 160px; overflow: hidden; }
-    .skill-bar-fill { height: 100%; border-radius: 3px; background: var(--accent); transition: width 0.8s ease; }
-    .skill-pct { color: var(--muted); font-size: 12px; min-width: 32px; }
+    /* Mobile */
+    @media (max-width: 639px) {
+      html, body { font-size: 12px; }
+
+      #titlebar { padding: 6px 12px; }
+      #titlebar-label { font-size: 11px; }
+
+      #output { padding: 12px 12px 6px; }
+
+      #input-row { padding: 6px 12px 14px; }
+
+      /* Prevent mobile browser zoom on input focus */
+      #input { font-size: 16px; }
+
+      /* Stack rows wrap gracefully on narrow screens */
+      .line { white-space: pre-wrap; word-break: break-all; }
+
+      /* Glitch is too heavy on low-powered mobile - disable */
+      .banner, .banner-sm { animation: none; }
+    }
 
     /* Blink cursor for boot */
     @keyframes blink { 0%,49%{opacity:1} 50%,100%{opacity:0} }
@@ -228,7 +242,7 @@ const inp = document.getElementById('input');
 document.addEventListener('click', () => inp.focus());
 
 // Command history
-let history = [], histIdx = -1;
+let cmdHistory = [], histIdx = -1;
 
 // ─── Output helpers ────────────────────────────────────────────────
 
@@ -269,7 +283,10 @@ const BOOT = [
   [1200,() => appendLine(`<span class="c-muted">Starting DNS resolver…       <span class="c-accent">OK</span></span>`)],
   [1500,() => appendLine(`<span class="c-muted">Verifying integrity…         <span class="c-accent">OK</span></span>`)],
   [1900,() => appendBlank()],
-  [2000,() => appendLine(`<span class="banner">${BANNER}</span>`)],
+  [2000,() => {
+    const isMobile = window.innerWidth < 640;
+    appendLine(`<span class="${isMobile ? 'banner-sm' : 'banner'}">${isMobile ? BANNER_SM : BANNER}</span>`);
+  }],
   [2100,() => appendBlank()],
   [2200,() => appendLine(`${span('c-muted','Last login:')} ${span('c-accent', new Date().toDateString())} via tty0`)],
   [2300,() => appendLine(`${span('c-muted','Type')} ${span('c-amber bold','help')} ${span('c-muted','to see available commands.')}`)],
@@ -284,6 +301,14 @@ const BANNER = `
  ██╔══██╗  ╚██╔╝     ██║   ██╔══╝       ██║     ██╔══██║██╔══██╗   ██║   
  ██████╔╝   ██║      ██║   ███████╗     ╚██████╗██║  ██║██║  ██║   ██║   
  ╚═════╝    ╚═╝      ╚═╝   ╚══════╝      ╚═════╝╚═╝  ╚═╝╚═╝  ╚═╝   ╚═╝  `.trim();
+
+const BANNER_SM = `
+ ██████╗ ██╗   ██╗████████╗███████╗
+ ██╔══██╗╚██╗ ██╔╝╚══██╔══╝██╔════╝
+ ██████╔╝ ╚████╔╝    ██║   █████╗  
+ ██╔══██╗  ╚██╔╝     ██║   ██╔══╝  
+ ██████╔╝   ██║      ██║   ███████╗
+ ╚═════╝    ╚═╝      ╚═╝   ╚══════╝  ${span('c-muted','// byte-cart')}`.trim();
 
 inp.disabled = true;
 BOOT.forEach(([t, fn]) => setTimeout(fn, t));
@@ -301,6 +326,7 @@ const CMDS = {
       ['skills',    'Technical skill set'],
       ['projects',  'Current and past projects'],
       ['stack',     'Hardware & OS setup'],
+      ['privacy',   'Why privacy matters'],
       ['contact',   'Ways to reach me'],
       ['clear',     'Clear terminal output'],
       ['ls',        'List available files'],
@@ -317,10 +343,18 @@ const CMDS = {
     appendLine(`${span('c-accent bold', '// whoami')}`);
     appendLine(`${span('c-muted', '─'.repeat(52))}`);
     appendLine(`  Handle    ${span('c-white', 'byte-cart')}`);
-    appendLine(`  Role      ${span('c-white', 'Product Support Engineer — Cybersecurity Infra')}`);
-    appendLine(`  Employer  ${span('c-blue', 'Proofpoint')}`);
-    appendLine(`  Focus     ${span('c-white', 'Privacy-first infrastructure & threat analysis')}`);
+    appendLine(`  Role      ${span('c-white', 'Cybersecurity Infrastructure Engineer')}`);
+    appendLine(`  Focus     ${span('c-white', 'Privacy-first systems, threat analysis, secure comms')}`);
+    appendLine(`  OS        ${span('c-accent', 'Bazzite Atlas')} ${span('c-muted', '·')} ${span('c-accent', 'Tails')} ${span('c-muted', '·')} ${span('c-accent', 'Win11')} ${span('c-muted', '(desktop)')}  ${span('c-accent', 'GrapheneOS')} ${span('c-muted', '(mobile)')}`);
     appendLine(`  Location  ${span('c-muted', '[REDACTED]')}`);
+    appendBlank();
+    appendLine(`  I build and maintain privacy-focused infrastructure — recursive`);
+    appendLine(`  DNS, network-level blocking, hardened mobile environments, and`);
+    appendLine(`  self-hosted services that eliminate unnecessary data exposure.`);
+    appendBlank();
+    appendLine(`  Operates on a threat-model-first principle: the right tool for`);
+    appendLine(`  each threat surface. Self-hosted where possible, audited open-`);
+    appendLine(`  source where not. No telemetry. No unnecessary attack surface.`);
     appendBlank();
     appendLine(`  ${span('c-muted', '"Minimal footprint. Maximum control."')}`);
     appendBlank();
@@ -332,28 +366,112 @@ const CMDS = {
     appendLine(span('c-muted', '─'.repeat(52)));
     appendBlank();
 
-    const skills = [
-      ['Email Security (Proofpoint)', 92],
-      ['DNS / Pi-Hole / Unbound',     88],
-      ['Linux Administration',         85],
-      ['Network Threat Analysis',      82],
-      ['GrapheneOS / Mobile OPSEC',    80],
-      ['Firewall & Packet Filtering',  75],
-      ['Scripting (Bash / Python)',     70],
-      ['Log Analysis & SIEM',          68],
+    const domains = [
+      {
+        category: 'DNS & Network Architecture',
+        desc: 'Recursive resolution with full DNSSEC validation chain. ' +
+              'Authoritative local zones, split-horizon DNS, RPZ (response ' +
+              'policy zones), and upstream-free resolver operation. Understands ' +
+              'DNS-over-HTTPS and DNS-over-TLS threat surfaces — and why ' +
+              'encrypted-but-centralised DNS is not a privacy win.',
+        tools: ['Unbound', 'Pi-Hole', 'DNSSEC', 'RPZ', 'DoH/DoT analysis', 'nftables'],
+      },
+      {
+        category: 'Network Forensics & Packet Analysis',
+        desc: 'Full packet capture analysis, TCP stream reconstruction, ' +
+              'protocol dissection, and traffic anomaly detection at the ' +
+              'wire level. Identifies C2 beaconing patterns, DNS tunnelling, ' +
+              'and covert channel exfiltration from raw PCAPs without tooling ' +
+              'guardrails. Writes custom BPF filters for targeted capture.',
+        tools: ['Wireshark', 'tcpdump', 'tshark', 'BPF/eBPF', 'Zeek', 'Suricata'],
+      },
+      {
+        category: 'Threat Modelling & Attack Surface Analysis',
+        desc: 'Systematic threat modelling using STRIDE and PASTA methodologies. ' +
+              'Maps adversary TTPs against real infrastructure, identifies trust ' +
+              'boundaries, and reduces attack surface by eliminating unnecessary ' +
+              'services rather than patching around them. Thinks in attacker ' +
+              'primitives: persistence, lateral movement, exfiltration.',
+        tools: ['STRIDE', 'PASTA', 'MITRE ATT&CK', 'kill chain mapping'],
+      },
+      {
+        category: 'Hardened Linux & Kernel Security',
+        desc: 'Immutable, SELinux-enforcing systems as daily driver. Kernel ' +
+              'parameter hardening via sysctl (ASLR, ptrace scope, kptr ' +
+              'restrict), mandatory access control policy writing, seccomp ' +
+              'profile creation, and namespaced container isolation without ' +
+              'trusting the container runtime. Follows kernel security ' +
+              'advisories and CVE disclosures closely.',
+        tools: ['SELinux', 'seccomp', 'sysctl', 'Bazzite', 'rpm-ostree', 'cgroups v2'],
+      },
+      {
+        category: 'Mobile OPSEC & Platform Security',
+        desc: 'GrapheneOS in production — not as a hobby. Per-app network ' +
+              'isolation, hardened WebView, no GMS, hardware-backed ' +
+              'attestation, and verified boot re-locked with GrapheneOS ' +
+              'signing keys. Familiar ' +
+              'with the Android security model at the permission and IPC level — ' +
+              'Binder, intents, and the attack surface they create.',
+        tools: ['GrapheneOS', 'Vanadium', 'AVB', 'Android Binder', 'ADB forensics'],
+      },
+      {
+        category: 'OSINT & Adversarial Reconnaissance',
+        desc: 'Passive and semi-active reconnaissance: certificate transparency ' +
+              'log analysis, ASN and BGP route enumeration, metadata stripping ' +
+              'and analysis, and infrastructure fingerprinting. Also applies ' +
+              'offensively — routinely audits own digital footprint against ' +
+              'the same techniques an adversary would use.',
+        tools: ['Shodan', 'crt.sh', 'WHOIS/RDAP', 'ExifTool', 'theHarvester', 'OSINT Framework'],
+      },
+      {
+        category: 'Cryptography & Secure Comms',
+        desc: 'Applied cryptography: understands the distinction between ' +
+              'encryption, authentication, and forward secrecy — and which ' +
+              'protocols actually deliver them. Evaluates communication tools ' +
+              'against their cryptographic primitives and metadata exposure, ' +
+              'not their marketing. Operates zero-identifier communications ' +
+              'infrastructure in daily use.',
+        tools: ['Signal Protocol', 'X3DH', 'Double Ratchet', 'WireGuard', 'SimpleX', 'GPG'],
+      },
+      {
+        category: 'Infrastructure Hardening & Zero Trust',
+        desc: 'Designs systems assuming breach. Network micro-segmentation, ' +
+              'deny-by-default firewall policy (nftables), service isolation ' +
+              'via systemd sandboxing directives, and principle of least ' +
+              'privilege enforced at every layer. No implicit trust between ' +
+              'internal services.',
+        tools: ['nftables', 'systemd sandbox', 'WireGuard', 'fail2ban', 'SELinux'],
+      },
+      {
+        category: 'Scripting, Tooling & Automation',
+        desc: 'Bash for system automation and operational glue. Python for ' +
+              'log parsing, data processing, and bespoke security ' +
+              'tooling. Comfortable with one-liners that most people would ' +
+              'write a script for, and scripts that most people would buy ' +
+              'a product for.',
+        tools: ['Bash', 'Python', 'awk', 'sed', 'jq', 'systemd timers', 'cron'],
+      },
     ];
 
-    skills.forEach(([name, pct]) => {
-      const fill = Math.round((pct / 100) * 160);
-      appendLine(`  <span class="skill-row">` +
-        `<span class="skill-name c-text">${name}</span>` +
-        `<span class="skill-bar-bg"><span class="skill-bar-fill" style="width:${fill}px"></span></span>` +
-        `<span class="skill-pct c-muted">${pct}%</span>` +
-        `</span>`);
+    domains.forEach(d => {
+      appendLine(`  ${span('c-amber bold', d.category)}`);
+      appendLine(span('c-muted', '  ' + '·'.repeat(48)));
+      const words = d.desc.split(' ');
+      let line = '  ';
+      words.forEach(w => {
+        if ((line + w).length > 66) {
+          appendLine(span('c-text', line));
+          line = '  ' + w + ' ';
+        } else {
+          line += w + ' ';
+        }
+      });
+      if (line.trim()) appendLine(span('c-text', line));
+      appendBlank();
+      const toolStr = d.tools.map(t => span('c-accent', t)).join(span('c-muted', ' · '));
+      appendLine(`  ${toolStr}`);
+      appendBlank();
     });
-    appendBlank();
-    appendLine(`  ${span('c-muted', 'Certs:')} ${span('c-white', 'In progress — always learning.')}`);
-    appendBlank();
   },
 
   projects() {
@@ -366,27 +484,40 @@ const CMDS = {
       {
         name: 'pi-hole-unbound-stack',
         status: 'active',
-        desc: 'Recursive DNS resolver with Pi-Hole, Unbound, and DNSSEC on-prem.',
-        tags: ['DNS', 'Privacy', 'Self-hosted'],
+        desc: 'Fully recursive DNS resolver — Pi-Hole for blocking, Unbound for ' +
+              'resolution with DNSSEC validation. No upstream provider. Local-only.',
+        tags: ['DNS', 'Privacy', 'Self-hosted', 'DNSSEC'],
       },
       {
         name: 'grapheneos-hardening',
         status: 'active',
-        desc: 'Personal GrapheneOS profile — sandboxing, network kill-switch, no GMS.',
-        tags: ['Mobile', 'OPSEC', 'GrapheneOS'],
+        desc: 'Production GrapheneOS setup: per-app network isolation, no GMS, ' +
+              'Sandboxed Google Play not installed, kill-switch always on.',
+        tags: ['Mobile', 'OPSEC', 'GrapheneOS', 'Hardening'],
+      },
+      {
+        name: 'vpn-stack',
+        status: 'active',
+        desc: 'Mullvad + IVPN — both independently audited, no personal data ' +
+              'required, WireGuard protocol, cash/Monero accepted. Rotated by use case. ' +
+              'Neither provider has anything to identify you with.',
+        tags: ['VPN', 'WireGuard', 'Mullvad', 'IVPN', 'Privacy'],
+      },
+      {
+        name: 'secure-comms-stack',
+        status: 'active',
+        desc: 'Zero-identifier communications: SimpleX Chat (no phone number, ' +
+              'no central server) + Signal/Molly (hardened fork, FOSS deps, ' +
+              'memory wiping) + SimpleLogin aliasing for email.',
+        tags: ['SimpleX', 'Molly', 'SimpleLogin', 'OPSEC', 'Comms'],
       },
       {
         name: 'byte-cart.github.io',
         status: 'active',
-        desc: 'This site — static, GPL-3.0, zero trackers, no JS frameworks.',
-        tags: ['Web', 'Open-source'],
+        desc: 'This site. Static HTML, GPL-3.0, zero trackers, zero JS ' +
+              'frameworks, zero external font requests.',
+        tags: ['Web', 'Open-source', 'GPL-3.0'],
         url: 'https://github.com/Byte-Cart/Byte-Cart.github.io',
-      },
-      {
-        name: 'email-threat-analysis',
-        status: 'private',
-        desc: 'Internal tooling for header analysis and phishing classification.',
-        tags: ['Proofpoint', 'Security', 'Python'],
       },
     ];
 
@@ -410,20 +541,67 @@ const CMDS = {
     appendBlank();
 
     const rows = [
-      ['Desktop OS',   'Bazzite (Atlas) — immutable Fedora-based gaming/work'],
-      ['Mobile OS',    'GrapheneOS — hardened Android on Pixel'],
-      ['DNS',          'Pi-Hole + Unbound (recursive, DNSSEC, local-only)'],
-      ['Browser',      'Hardened Firefox / Tor Browser'],
-      ['Email',        'SimpleLogin aliases — no real address exposed'],
-      ['Messaging',    'SimpleX Chat — no phone number, no central server'],
-      ['Threat Intel', 'Proofpoint TAP — email security & click-time protect'],
-      ['VPN',          'Wireguard (self-hosted)'],
-      ['Password Mgr', 'Bitwarden (self-hosted)'],
+      ['Desktop OS',    'Bazzite Atlas (gaming) · Tails (anonymous) · Win11 (compat)'],
+      ['Mobile OS',     'GrapheneOS — hardened Android, no GMS, Pixel hardware'],
+      ['DNS',           'Pi-Hole + Unbound — recursive, DNSSEC, LAN-only resolver'],
+      ['VPN',           'Mullvad + IVPN — no accounts, cash/Monero, audited, WireGuard'],
+      ['Browser',       'Brave (daily) · Mullvad Browser (fingerprint resistant) · Tor Browser (anonymous)'],
+      ['Email',         'SimpleLogin — aliasing layer, real address never exposed'],
+      ['Messaging',     'SimpleX Chat — no identifiers, no central relay · Signal/Molly — hardened Signal fork'],
+      ['Password Mgr',  'KeePassXC (desktop) + KeePassDX (Android) — local, encrypted, open-source'],
+      ['2FA / MFA',     'Ente Auth — E2EE TOTP, open-source, via Accrescent'],
+      ['App Sourcing',  'Obtainium + GrapheneOS App Store + Accrescent — no Play Store dependency'],
+      ['Encryption',    'VeraCrypt — full-volume and container encryption, cross-platform'],
+      ['Search',        'SearXNG — self-hosted meta-search, zero query logging'],
+      ['Maps',          'Organic Maps — offline, no telemetry, OSM-based'],
+      ['Payments',      'Cash / Monero — no financial metadata trail'],
+      ['Principle',     'Right tool. Right threat model. No exceptions.'],
     ];
 
     rows.forEach(([k, v]) => {
       appendLine(`  ${span('c-blue', k.padEnd(16))}${span('c-text', v)}`);
     });
+    appendBlank();
+  },
+
+  privacy() {
+    appendBlank();
+    appendLine(`${span('c-accent bold', '// why privacy matters')}`);
+    appendLine(span('c-muted', '─'.repeat(52)));
+    appendBlank();
+    appendLine(`  ${span('c-amber bold', '"I have nothing to hide. Why should I care?"')}`);
+    appendBlank();
+    appendLine(`  ${span('c-text', 'This is the wrong question.')}`);
+    appendBlank();
+    appendLine(`  Much like the right to interracial marriage, women\'s suffrage,`);
+    appendLine(`  and freedom of speech — our right to privacy hasn\'t always`);
+    appendLine(`  been upheld. In several dictatorships today, it still isn\'t.`);
+    appendLine(`  Generations before ours bled for these rights. Privacy is`);
+    appendLine(`  one of them.`);
+    appendBlank();
+    appendLine(`  Privacy is a ${span('c-white bold', 'human right')} — inherent, universal, and owed`);
+    appendLine(`  to every person without discrimination.`);
+    appendBlank();
+    appendLine(span('c-muted', '  ' + '·'.repeat(48)));
+    appendBlank();
+    appendLine(`  ${span('c-amber bold', 'Privacy is not secrecy.')}`);
+    appendBlank();
+    appendLine(`  We know what happens in the bathroom.`);
+    appendLine(`  You still close the door.`);
+    appendBlank();
+    appendLine(`  Not because you\'re hiding something —`);
+    appendLine(`  because some things are ${span('c-white bold', 'yours')}.`);
+    appendBlank();
+    appendLine(`  Everyone has something to protect. A relationship. A belief.`);
+    appendLine(`  A medical condition. A draft thought. A private moment.`);
+    appendLine(`  Privacy is what makes inner life possible. It\'s not a`);
+    appendLine(`  feature. It\'s what makes us human.`);
+    appendBlank();
+    appendLine(span('c-muted', '  ' + '·'.repeat(48)));
+    appendBlank();
+    appendLine(`  ${span('c-muted', 'The goal of this stack is not paranoia.')}`);
+    appendLine(`  ${span('c-muted', 'It\'s the quiet, principled exercise of a right')}`);
+    appendLine(`  ${span('c-muted', 'that others fought to give us.')}`);
     appendBlank();
   },
 
@@ -433,8 +611,8 @@ const CMDS = {
     appendLine(span('c-muted', '─'.repeat(52)));
     appendBlank();
     appendLine(`  ${span('c-muted', 'GitHub')}    <a class="terminal-link" href="https://github.com/Byte-Cart" target="_blank" rel="noopener noreferrer">@Byte-Cart</a>`);
-    appendLine(`  ${span('c-muted', 'Email')}     <a class="terminal-link" href="mailto:thesis_embroider466@simplelogin.com">thesis_embroider466@simplelogin.com</a>`);
-    appendLine(`  ${span('c-muted', 'SimpleX')}   <a class="terminal-link" href="https://smp15.simplex.im/a#UglaDVH3cuZ9XeqHIkDf1Y_t4kcJzXhMiJYekBvVz6s" target="_blank" rel="noopener noreferrer">Connect via SimpleX Chat</a>`);
+    appendLine(`  ${span('c-muted', 'Email')}     <a class="terminal-link" href="mailto:undocked_knapsack905@simplelogin.com">undocked_knapsack905@simplelogin.com</a>`);
+    appendLine(`  ${span('c-muted', 'SimpleX')}   <a class="terminal-link" href="https://smp18.simplex.im/a#iNFGWJ5ozjSFBmAqhOuhrqA7V7s95uEHjKIeMaTuKtk" target="_blank" rel="noopener noreferrer">Connect via SimpleX Chat</a>`);
     appendBlank();
     appendLine(`  ${span('c-muted', 'PGP / fingerprint available on request via SimpleX.')}`);
     appendBlank();
@@ -442,14 +620,15 @@ const CMDS = {
 
   ls() {
     appendBlank();
-    appendLine(`${span('c-accent', 'total 6')}`);
+    appendLine(`${span('c-accent', 'total 7')}`);
     const files = [
-      ['-rw-r--r--', 'root', 'root',  '4096', 'README.md'],
-      ['-rw-r--r--', 'root', 'root',  '2048', 'whoami.txt'],
-      ['-rw-r--r--', 'root', 'root',  '1337', 'projects.txt'],
-      ['-rw-r--r--', 'root', 'root',   '512', 'contact.txt'],
-      ['drwxr-xr-x', 'root', 'root',  '4096', 'skills/'],
-      ['drwxr-xr-x', 'root', 'root',  '4096', 'stack/'],
+      ['-rw-r--r--', 'byte-cart', 'byte-cart',  '4096', 'README.md'],
+      ['-rw-r--r--', 'byte-cart', 'byte-cart',  '2048', 'whoami.txt'],
+      ['-rw-r--r--', 'byte-cart', 'byte-cart',  '1337', 'projects.txt'],
+      ['-rw-r--r--', 'byte-cart', 'byte-cart',  '2048', 'skills.txt'],
+      ['-rw-r--r--', 'byte-cart', 'byte-cart',  '1024', 'stack.txt'],
+      ['-rw-r--r--', 'byte-cart', 'byte-cart',   '512', 'privacy.txt'],
+      ['-rw-r--r--', 'byte-cart', 'byte-cart',   '256', 'contact.txt'],
     ];
     files.forEach(([perms, u, g, size, name]) => {
       const isDir = perms[0] === 'd';
@@ -466,6 +645,9 @@ const CMDS = {
       'readme.md':    'whoami',
       'whoami.txt':   'whoami',
       'projects.txt': 'projects',
+      'skills.txt':   'skills',
+      'stack.txt':    'stack',
+      'privacy.txt':  'privacy',
       'contact.txt':  'contact',
     };
     if (map[file]) {
@@ -482,6 +664,10 @@ const CMDS = {
 
   clear() {
     out.innerHTML = '';
+    appendLine(`<span class="banner-sm">${BANNER_SM}</span>`);
+    appendBlank();
+    appendLine(`${span('c-muted','Type')} ${span('c-amber bold','help')} ${span('c-muted','to see available commands.')}`);
+    appendBlank();
   },
 };
 
@@ -492,8 +678,8 @@ inp.addEventListener('keydown', e => {
     const raw = inp.value.trim();
     if (!raw) return;
 
-    history.unshift(raw);
-    if (history.length > 50) history.pop();
+    cmdHistory.unshift(raw);
+    if (cmdHistory.length > 50) cmdHistory.pop();
     histIdx = -1;
 
     echoCmd(raw);
@@ -516,8 +702,8 @@ inp.addEventListener('keydown', e => {
 
   if (e.key === 'ArrowUp') {
     e.preventDefault();
-    if (histIdx < history.length - 1) histIdx++;
-    inp.value = history[histIdx] || '';
+    if (histIdx < cmdHistory.length - 1) histIdx++;
+    inp.value = cmdHistory[histIdx] || '';
     setTimeout(() => inp.setSelectionRange(inp.value.length, inp.value.length), 0);
   }
 
@@ -525,7 +711,7 @@ inp.addEventListener('keydown', e => {
     e.preventDefault();
     if (histIdx > 0) histIdx--;
     else { histIdx = -1; inp.value = ''; return; }
-    inp.value = history[histIdx] || '';
+    inp.value = cmdHistory[histIdx] || '';
   }
 
   if (e.key === 'Tab') {
