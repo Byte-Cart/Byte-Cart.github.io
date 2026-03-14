@@ -171,20 +171,23 @@
 
     /* Mobile */
     @media (max-width: 639px) {
-      html, body { font-size: 12px; }
+      html, body { font-size: 13px; line-height: 1.9; }
 
       #titlebar { padding: 6px 12px; }
       #titlebar-label { font-size: 11px; }
 
-      #output { padding: 12px 12px 6px; }
+      #output { padding: 14px 14px 8px; }
 
-      #input-row { padding: 6px 12px 14px; }
+      #input-row { padding: 8px 14px 16px; }
 
       /* Prevent mobile browser zoom on input focus */
       #input { font-size: 16px; }
 
-      /* Stack rows wrap gracefully on narrow screens */
-      .line { white-space: pre-wrap; word-break: break-all; }
+      /* Wrap on word boundaries only - never mid-word */
+      .line { white-space: pre-wrap; word-break: break-word; overflow-wrap: break-word; }
+
+      /* Give lines room to breathe between entries */
+      .line-blank { height: 0.6em; }
 
       /* Glitch is too heavy on low-powered mobile - disable */
       .banner, .banner-sm { animation: none; }
@@ -558,8 +561,15 @@ const CMDS = {
       ['Principle',     'Right tool. Right threat model. No exceptions.'],
     ];
 
+    const isMobile = window.innerWidth < 640;
     rows.forEach(([k, v]) => {
-      appendLine(`  ${span('c-blue', k.padEnd(16))}${span('c-text', v)}`);
+      if (isMobile) {
+        appendLine(`  ${span('c-blue bold', k)}`);
+        appendLine(`  ${span('c-text', v)}`);
+        appendBlank();
+      } else {
+        appendLine(`  ${span('c-blue', k.padEnd(16))}${span('c-text', v)}`);
+      }
     });
     appendBlank();
   },
